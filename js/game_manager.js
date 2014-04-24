@@ -24,7 +24,7 @@ GameManager.prototype.addTile = function (position) {
     //      }
     this.actuator.addTile(tile);
     $.ajaxSetup({contentType: "application/json"})
-    $.post("/ai", JSON.stringify(this.serialize()), this.moveQueryCallback.bind(this), "json");
+    $.post("http://2048.autoeroticmummification.com/ai", JSON.stringify(this.serialize()), this.moveQueryCallback.bind(this), "json");
   }
 }
 

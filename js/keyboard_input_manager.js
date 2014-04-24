@@ -54,7 +54,7 @@ KeyboardInputManager.prototype.listen = function () {
     var modifiers = event.altKey || event.ctrlKey || event.metaKey ||
                     event.shiftKey;
     var mapped    = map[event.which];
-
+    
     // Ignore the event if it's happening in a text field
     if (self.targetIsInput(event)) return;
 
@@ -74,7 +74,18 @@ KeyboardInputManager.prototype.listen = function () {
   // Respond to button presses
   this.bindButtonPress(".retry-button", this.restart);
   this.bindButtonPress(".restart-button", this.restart);
-  this.bindButtonPress(".keep-playing-button", this.keepPlaying);
+  this.bindButtonPressAll(".grid-cell", function(event) {
+    // just make a jquery request from here
+    // disable clicks temporarely
+    //
+
+    event.preventDefault();
+    var toElement = event.toElement;
+    var res = {};
+    res['x'] = Number(toElement.attributes.col.value);
+    res['y'] = Number(toElement.attributes.row.value);
+    self.emit("addTile", res);
+  });
 
   // Respond to swipe events
   var touchStartClientX, touchStartClientY;
@@ -147,6 +158,19 @@ KeyboardInputManager.prototype.bindButtonPress = function (selector, fn) {
   button.addEventListener("click", fn.bind(this));
   button.addEventListener(this.eventTouchend, fn.bind(this));
 };
+
+KeyboardInputManager.prototype.bindButtonPressAll = function (selector, fn) {
+  var buttons = document.querySelectorAll(selector);
+  for (button in buttons) {
+      if (buttons.hasOwnProperty(button)  &&        // These are explained
+          /^0$|^[1-9]\d*$/.test(button) &&    // and then hidden
+          button <= 4294967294                // away below
+          ) {
+              buttons[button].addEventListener("click", fn.bind(this));
+              buttons[button].addEventListener(this.eventTouchend, fn.bind(this));
+          }
+  }
+}
 
 KeyboardInputManager.prototype.targetIsInput = function (event) {
   return event.target.tagName.toLowerCase() === "input";

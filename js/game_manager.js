@@ -6,11 +6,40 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
 
   this.startTiles     = 2;
 
-  this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
+  this.inputManager.on("addTile", this.addTile.bind(this));
 
   this.setup();
+}
+
+GameManager.prototype.addTile = function (position) {
+  if (!this.tileLock) {
+    this.tileLock = true;
+    var value = Math.random() < 0.9 ? 2 : 4;
+    var tile = new Tile(position, value);
+    this.grid.insertTile(tile);
+    //      if (!this.movesAvailable()) {
+    //        this.over = true; // Game over!
+    //      }
+    this.actuator.addTile(tile);
+    $.ajaxSetup({contentType: "application/json"})
+    $.post("/ai", JSON.stringify(this.serialize()), this.moveQueryCallback.bind(this), "json");
+  }
+}
+
+GameManager.prototype.moveQueryCallback = function (a, b, c) {
+  if (a["over"]) {
+    this.over = true;
+    this.actuate();
+  } else if (a["won"]) {
+    this.won = true;
+    this.actuate();
+  } else {
+      this.move(a["direction"]);
+  }
+
+  this.tileLock = false;
 }
 
 // Restart the game
@@ -43,12 +72,14 @@ GameManager.prototype.setup = function () {
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+    this.tileLock    = false;
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
     this.over        = false;
     this.won         = false;
     this.keepPlaying = false;
+    this.tileLock    = false;
 
     // Add the initial tiles
     this.addStartTiles();
@@ -167,7 +198,7 @@ GameManager.prototype.move = function (direction) {
           self.score += merged.value;
 
           // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
+          if (merged.value === 2048) self.over = true;
         } else {
           self.moveTile(tile, positions.farthest);
         }
@@ -178,14 +209,7 @@ GameManager.prototype.move = function (direction) {
       }
     });
   });
-
   if (moved) {
-    this.addRandomTile();
-
-    if (!this.movesAvailable()) {
-      this.over = true; // Game over!
-    }
-
     this.actuate();
   }
 };
